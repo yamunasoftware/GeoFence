@@ -2,6 +2,7 @@
 
 echo Started.
 echo %time%
-python src\generate.py
-python src\data.py
+cd src
+python generate.py
+python data.py
 echo %time%

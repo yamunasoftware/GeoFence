@@ -1,9 +1,11 @@
 ### DATA IMPORTS ###
 
 import cluster
+import knn
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 ### NORMALIZATION FUNCTIONS ###
 
@@ -59,19 +61,41 @@ def denormalize(data, extrema):
 
 ### DATA PROCESSING AND CLUSTERING ###
 
-# Reads the Dataset:
-dataset = pd.read_csv('dataset.csv')
-data = list(dataset.itertuples(index=False, name=None))
+# Reads the Datasets:
+dataset = pd.read_csv(os.path.join(os.path.pardir, 'dataset.csv'))
+test_data = pd.read_csv(os.path.join(os.path.pardir, 'test_data.csv'))
 
-# Normalize Data and Cluster:
+# Filters Datasets:
+cluster_set = dataset[['Latitude', 'Longitude']]
+label_set = dataset[['Label']]
+test_set = test_data[['Latitude', 'Longitude']]
+
+# Gets the Data Lists:
+data = list(cluster_set.itertuples(index=False, name=None))
+labels = list(label_set.itertuples(index=False, name=None))
+test = list(test_set.itertuples(index=False, name=None))
+
+# Normalize All Data:
 normalized_data, extrema = normalize(data)
+normalized_test, text_extrema = normalize(test)
+
+# Runs Machine Learning Algorithms:
 centers, clusters = cluster.kmeans(normalized_data, 3, 3000)
+classifications = knn.classifyLists(normalized_test, normalized_data, labels, 3)
 
 # Denormalize Data:
 centers = denormalize(centers, extrema)
 new_clusters = []
 for cluster in clusters:
   new_clusters.append(denormalize(cluster, extrema))
+
+# Gets the Classes:
+counts = {}
+for label in classifications:
+  if label[0] in counts:
+    counts[label[0]] += 1
+  else:
+    counts[label[0]] = 1
 
 ### DATA VISUALIZATION ###
 
@@ -104,7 +128,19 @@ for i in range(len(x_values)):
 # Plots the Centers of the Clusters:
 for center in centers:
   plt.plot(center[0], center[1], 'bo')
+plt.savefig(os.path.join(os.path.pardir, 'clusters.png'), bbox_inches='tight')
 
-# Saves the Plot to Image:
-plt.savefig('clusters.png', bbox_inches='tight')
+# Sets up the Graph:
+plt.figure(figsize=(10,5))
+plt.title('GeoFence Classification')
+plt.xlabel('City')
+plt.ylabel('Count')
+
+# Gets the Values:
+cities = list(counts.keys())
+values = list(counts.values())
+
+# Plots Bar Graph:
+plt.bar(cities, values)
+plt.savefig(os.path.join(os.path.pardir, 'classifications.png'), bbox_inches='tight')
 plt.close()
